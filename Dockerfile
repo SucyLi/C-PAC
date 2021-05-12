@@ -4,6 +4,8 @@ FROM freesurfer/freesurfer:6.0
 # using neurodebian runtime as parent image
 FROM neurodebian:bionic-non-free
 
+FROM verificarlo/fuzzy:v0.4.1-lapack as fuzzy
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
@@ -283,3 +285,12 @@ RUN ldconfig
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Copy fuzzy environment from fuzzy image
+RUN mkdir -p /opt/mca-libmath
+COPY --from=fuzzy /opt/mca-libmath/libmath.so /opt/mca-libmath/
+COPY --from=fuzzy /usr/local/lib/libinterflop* /usr/local/lib/
+ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=mca'
+
+COPY dev/togglefuzzy.sh /bin/
+ENTRYPOINT togglefuzzy.sh
